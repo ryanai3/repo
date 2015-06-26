@@ -19,7 +19,7 @@ class Repo < Thor
     set_dir_info
     repofile2gitfile
     system_call_git(*args)
-        
+
     print("success")
   end
 
@@ -28,11 +28,6 @@ class Repo < Thor
     safe_repofile2gitfile
     system_call_git(*args)
     safe_gitfile2repofile
-  end
-
-  def system_call_git(*args)
-    args_string = args.map{ |i| i.to_s}.join(" ")
-    system('git ' + args_string)
   end
 
   desc "init", "Create an empty Repository"
@@ -45,6 +40,11 @@ class Repo < Thor
   end
 
   no_commands{
+    def system_call_git(*args)
+      args_string = args.map{ |i| i.to_s}.join(" ")
+      system('git ' + args_string)
+    end
+
     def repofile2gitfile
       File.rename(@repofile, @gitfile)
     end
