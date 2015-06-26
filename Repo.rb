@@ -18,7 +18,15 @@ class Repo < Thor
   def add(*args)
     set_dir_info
     repofile2gitfile
-    system_call_git(*args)
+    if args.all?{|i| refers_to_file?(i)}
+      #if add is used simply, (listing files) we can handle it ourself
+
+
+    else # if args, use git (for interactive stuff too) and then repoify it
+      system_call_git(*args)
+
+    end
+
 
     print("success")
   end
@@ -39,10 +47,18 @@ class Repo < Thor
     end
   end
 
+
+
   no_commands{
     def system_call_git(*args)
       args_string = args.map{ |i| i.to_s}.join(" ")
       system('git ' + args_string)
+    end
+
+    def refers_to_file?(thing)
+      relative_file = File.exist?(File.expand_path(thing, @current_dir))
+      absolute_file = File.exist?(File.absolute_path(thing))
+      relative_file or absolute_file
     end
 
     def repofile2gitfile
