@@ -15,19 +15,24 @@ class Repo < Thor
   }
 
   desc "add", "Add file contents to the index"
-  def add
-
-    return Worker.directory_contains_repo?(current_dir)
+  def add(*args)
+    set_dir_info
+    repofile2gitfile
+    system_call_git(*args)
+        
+    print("success")
   end
 
   desc "git", "turns .repo unto .git then calls git"
   def git(*args)
     safe_repofile2gitfile
+    system_call_git(*args)
+    safe_gitfile2repofile
+  end
 
+  def system_call_git(*args)
     args_string = args.map{ |i| i.to_s}.join(" ")
     system('git ' + args_string)
-
-    safe_gitfile2repofile
   end
 
   desc "init", "Create an empty Repository"
@@ -38,7 +43,7 @@ class Repo < Thor
       gitfile2repofile
     end
   end
-  
+
   no_commands{
     def repofile2gitfile
       File.rename(@repofile, @gitfile)
