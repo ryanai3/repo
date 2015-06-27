@@ -12,12 +12,13 @@ class Rgit < Thor
   end
 
   desc "add", "Add file contents to the index"
+
   def add(*args)
     set_dir_info
-    if args.all?{|i| refers_to_file?(i)}
+    if args.all? { |i| refers_to_file?(i) }
       #if add is used simply, (listing files) we can handle it ourself
-      stage_files(args)
-
+      repo = Repo.highest(@current_dir)
+      repo.stage_files(args)
 
     else # if args, use git (for interactive stuff too) and then repoify it
       system_call_git(*args)
@@ -26,22 +27,35 @@ class Rgit < Thor
 
     print("success")
   end
-  
+
   desc "git", "Calls vanilla git with your args"
+
   def git(*args)
     system_call_git(*args)
   end
 
   desc "init", "Create an empty Repository"
+
   def init
     Repo.init_at(dir)
   end
 
-  def system_call_git(*args)
-    args_string = args.map { |i| i.to_s }.join(" ")
-    system(' git ' + args_string)
+  def pull
+    repo = Repo.highest(@current_dir)
+    repo.recursive_pull
   end
 
+  def spull
+    repo = Repo.discover(@current_dir)
+    repo.pull
+  end
+
+  no_commands {
+    def system_call_git(*args)
+      args_string = args.map { |i| i.to_s }.join(" ")
+      system(' git ' + args_string)
+    end
+  }
 
 
 end
