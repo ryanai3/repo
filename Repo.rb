@@ -9,7 +9,6 @@ class Repo < Thor
     def set_dir_info
       @initial_dir = Dir.pwd
       @current_dir = @initial_dir
-      @repofile = File.expand_path(".repo", @current_dir)
       @gitfile = File.expand_path(".git", @current_dir)
     end
   }
@@ -17,17 +16,15 @@ class Repo < Thor
   desc "add", "Add file contents to the index"
   def add(*args)
     set_dir_info
-    repofile2gitfile
     if args.all?{|i| refers_to_file?(i)}
       #if add is used simply, (listing files) we can handle it ourself
-      index = Rugged::Index.new(@current_dir)
+      stage_files(args)
       
 
     else # if args, use git (for interactive stuff too) and then repoify it
       system_call_git(*args)
 
     end
-
 
     print("success")
   end
@@ -40,20 +37,28 @@ class Repo < Thor
     cur_index = Rugged::Index.new(@current_dir)
     #stage files in current directory
     files_in_current_dir.each{ |file| cur_index << File.path(file)}
-
+    cur_index.write #make sure to save it
     files_to_handoff.group_by{ |file| File.dirname(file)}.each{ |dir, files| stage_files_in(dir, files)}
   end
   #
   def stage_files_in(dir, files)
     #if dir contains .repo, create a Repo on there and call stage on it
+    stage_dir = dir
+    #Demorgan's: not(.repo_exists) and not(stage_dir==@current_dir) <==> not (.repo_exists or stage_dir==@current dir)
+    while not (File.exist?(File.expand_path(".git", stage_dir)) or stage_dir == @current_dir)
+      stage_dir = File.dirname(stage_dir)
+    end
+    #stage_dir is now the dir we want to stage the files into!
+
+    cur_index = Rugged::index.new(stage_dir)
+    files.each{ |file|  cur_index << File.path(file)}
+    cur_index.write
     #else, stage them all yourself.
   end
 
-  desc "git", "turns .repo unto .git then calls git"
+  desc "git", "Calls vanilla git with your args"
   def git(*args)
-    safe_repofile2gitfile
     system_call_git(*args)
-    safe_gitfile2repofile
   end
 
   desc "init", "Create an empty Repository"
@@ -61,7 +66,6 @@ class Repo < Thor
     set_dir_info
     unless File.exist?(@repofile)
       repository = Rugged::Repository.init_at(@current_dir)
-      gitfile2repofile
     end
   end
 
