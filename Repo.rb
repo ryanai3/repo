@@ -9,6 +9,7 @@ class Repo < Thor
     @gitfile = File.expand_path(".git", @current_dir)
   end
 
+#class initializers
   def self.init_at(dir)
     result = Repo.new(dir)
     unless result.exists_on_disk?
@@ -17,12 +18,31 @@ class Repo < Thor
     result
   end
 
-  def exists_on_disk?
-    File.exist?(@gitfile)
+  def self.discover(dir)
+    res_dir = dir
+    loop do
+      break if contains_gitfile?(res_dir) or res_dir == "/"
+      res_dir = File.dirname(res_dir)
+    end
+    Repo.new(res_dir) if contains_gitfile?(res_dir)
+  else
+    nil
+  end
+
+  def self.highest(dir)
+    res_dir = dir
+    cur_dir = dir
+    loop do
+      cur_dir = File.dirname(res_dir)
+      res_dir = cur_dir if contains_gitfile?(cur_dir) else res_dir
+      break if cur_dir = "/"
+    end
   end
 
   def stage_files(files)
-    files.group_by { |file| File.dirname(file) }.each { |dir, files| stage_files_in(dir, files) }
+    files
+        .group_by { |file| File.dirname(file) }
+        .each { |dir, files| stage_files_in(dir, files) }
   end
 
   def stage_files_in(dir, files)
@@ -36,6 +56,15 @@ class Repo < Thor
   def system_call_git(*args)
     args_string = args.map { |i| i.to_s }.join(" ")
     system('git ' + args_string)
+  end
+
+#convenience_methods?
+  def exists_on_disk?
+    File.exist?(@gitfile)
+  end
+
+  def contains_gitfile?(dir)
+    File.exist?(File.expand_path(".git", dir))
   end
 
   def refers_to_file?(thing)
