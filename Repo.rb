@@ -30,30 +30,15 @@ class Repo < Thor
   end
 
   def stage_files(files)
-    #filter files - ones in current dir added to index, rest handed off to subrepos
-    files_in_current_dir = files.select{ |file| File.dirname(file) == @current_dir}
-    files_to_handoff = files - files_in_current_dir #set difference
-    #getindex
-    cur_index = Rugged::Index.new(@current_dir)
-    #stage files in current directory
-    files_in_current_dir.each{ |file| cur_index << File.path(file)}
-    cur_index.write #make sure to save it
-    files_to_handoff.group_by{ |file| File.dirname(file)}.each{ |dir, files| stage_files_in(dir, files)}
+    files.group_by{ |file| File.dirname(file)}.each{ |dir, files| stage_files_in(dir, files)}
   end
   #
   def stage_files_in(dir, files)
-    #if dir contains .repo, create a Repo on there and call stage on it
-    stage_dir = dir
-    #Demorgan's: not(.repo_exists) and not(stage_dir==@current_dir) <==> not (.repo_exists or stage_dir==@current dir)
-    while not (File.exist?(File.expand_path(".git", stage_dir)) or stage_dir == @current_dir)
-      stage_dir = File.dirname(stage_dir)
-    end
-    #stage_dir is now the dir we want to stage the files into!
-
-    cur_index = Rugged::index.new(stage_dir)
-    files.each{ |file|  cur_index << File.path(file)}
-    cur_index.write
-    #else, stage them all yourself.
+    repo = Rugged::Repository.discover(File.join(dir, ".blah"))
+    index = repo.index
+    #index is the index we want to stage the files into!
+    files.each{ |file|  index << File.path(file)}
+    index.write
   end
 
   desc "git", "Calls vanilla git with your args"
