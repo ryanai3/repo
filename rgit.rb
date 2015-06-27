@@ -21,7 +21,7 @@ class Rgit < Thor
       repo.stage_files(args)
 
     else # if args, use git (for interactive stuff too) and then repoify it
-      system_call_git(*args)
+      sys_call_git(*args)
 
     end
 
@@ -31,7 +31,7 @@ class Rgit < Thor
   desc "git", "Calls vanilla git with your args"
 
   def git(*args)
-    system_call_git(*args)
+    sys_call_git(*args)
   end
 
   desc "init", "Create an empty Repository"
@@ -46,12 +46,12 @@ class Rgit < Thor
   end
 
   def spull
-    repo = Repo.discover(@current_dir)
+    repo = Repo.lowest(@current_dir)
     repo.pull
   end
 
   no_commands {
-    def system_call_git(*args)
+    def sys_call_git(*args)
       args_string = args.map { |i| i.to_s }.join(" ")
       system(' git ' + args_string)
     end

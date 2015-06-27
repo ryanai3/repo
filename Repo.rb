@@ -18,7 +18,7 @@ class Repo < Thor
     result
   end
 
-  def self.discover(dir)
+  def self.lowest(dir)
     res_dir = dir
     loop do
       break if contains_gitfile?(res_dir) or res_dir == "/"
