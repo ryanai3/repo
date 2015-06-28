@@ -7,15 +7,20 @@ class Repo < Thor
   def initialize(initial_dir)
     @repodir = initial_dir
     @gitfile = File.expand_path(".git", @current_dir)
+
+    @gitrepo = if contains_gitfile?(@repodir)
+                 Rugged::Repository.new(@repodir)
+               else
+                 nil
+               end
   end
 
 #class initializers
   def self.init_at(dir)
-    result = Repo.new(dir)
-    unless result.exists_on_disk?
-      Rugged::Repository.init_at(@repodir)
+    unless contains_gitfile?(dir)
+     Rugged::Repository.init_at(dir)
     end
-    result
+    Repo.new(dir)
   end
 
   def self.lowest(dir)
@@ -37,6 +42,7 @@ class Repo < Thor
       res_dir = cur_dir if contains_gitfile?(cur_dir) else res_dir
       break if cur_dir = "/"
     end
+    Repo.new(res_dir)
   end
 
   def stage_files(files)
@@ -63,11 +69,11 @@ class Repo < Thor
     File.exist?(@gitfile)
   end
 
-  def contains_gitfile?(dir)
+  def self.contains_gitfile?(dir)
     File.exist?(File.expand_path(".git", dir))
   end
 
-  def refers_to_file?(thing)
+  def self.refers_to_file?(thing)
     relative_file = File.exist?(File.expand_path(thing, @current_dir))
     absolute_file = File.exist?(File.absolute_path(thing))
     relative_file or absolute_file
