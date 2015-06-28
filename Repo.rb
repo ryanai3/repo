@@ -73,5 +73,8 @@ class Repo < Thor
     relative_file or absolute_file
   end
 
-  
+  def fetch_just_me
+
+  end
+
 end

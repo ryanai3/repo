@@ -40,20 +40,21 @@ class Rgit < Thor
     Repo.init_at(dir)
   end
 
-  def pull
+  def fetch
     repo = Repo.highest(@current_dir)
-    repo.recursive_pull
+    repo.fetch_recursive
   end
 
-  def spull
+  def sfetch
     repo = Repo.lowest(@current_dir)
-    repo.recursive_pull
+    repo.fetch_recursive
   end
 
-  def cpull
+  def cfetch
     repo = Repo.lowest(@current_dir)
-    repo.pull_just_me
+    repo.fetch_just_me
   end
+
   no_commands {
     def sys_call_git(*args)
       args_string = args.map { |i| i.to_s }.join(" ")
