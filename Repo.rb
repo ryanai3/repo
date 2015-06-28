@@ -73,23 +73,5 @@ class Repo < Thor
     relative_file or absolute_file
   end
 
-  def repofile2gitfile
-    File.rename(@repofile, @gitfile)
-  end
-
-  def gitfile2repofile
-    File.rename(@gitfile, @repofile)
-  end
-
-  def safe_repofile2gitfile
-    if File.exist?(repofile)
-      repofile2gitfile
-    end
-  end
-
-  def safe_gitfile2repofile
-    if File.exist?(current_gitfile)
-      gitfile2repofile
-    end
-  end
+  
 end
