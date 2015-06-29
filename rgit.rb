@@ -17,7 +17,7 @@ class Rgit < Thor
     set_dir_info
     if args.all? { |i| refers_to_file?(i) }
       #if add is used simply, (listing files) we can handle it ourself
-      repo = Repo.highest(@current_dir)
+      repo = Repo.highest_above(@current_dir)
       repo.stage_files(args)
 
     else # if args, use git (for interactive stuff too) and then repoify it
@@ -40,19 +40,9 @@ class Rgit < Thor
     Repo.init_at(dir)
   end
 
-  def fetch
-    repo = Repo.highest(@current_dir)
-    repo.fetch_recursive
-  end
+  desc "pull", "Pulls TODO"
+  def pull
 
-  def sfetch
-    repo = Repo.lowest(@current_dir)
-    repo.fetch_recursive
-  end
-
-  def cfetch
-    repo = Repo.lowest(@current_dir)
-    repo.fetch_just_me
   end
 
   no_commands {
@@ -61,8 +51,6 @@ class Rgit < Thor
       system(' git ' + args_string)
     end
   }
-
-
 end
 
 Rgit.start

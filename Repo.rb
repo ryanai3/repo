@@ -7,12 +7,12 @@ class Repo < Thor
   def initialize(initial_dir)
     @repodir = initial_dir
     @gitfile = File.expand_path(".git", @current_dir)
-
     @gitrepo = if contains_gitfile?(@repodir)
                  Rugged::Repository.new(@repodir)
                else
                  nil
                end
+
   end
 
 #class initializers
@@ -23,7 +23,7 @@ class Repo < Thor
     Repo.new(dir)
   end
 
-  def self.lowest(dir)
+  def self.lowest_above(dir)
     res_dir = dir
     loop do
       break if contains_gitfile?(res_dir) or res_dir == "/"
@@ -34,12 +34,14 @@ class Repo < Thor
     nil
   end
 
-  def self.highest(dir)
+  def self.highest_above(dir)
     res_dir = dir
     cur_dir = dir
     loop do
       cur_dir = File.dirname(res_dir)
-      res_dir = cur_dir if contains_gitfile?(cur_dir) else res_dir
+      if contains_gitfile?(cur_dir)
+        res_dir = cur_dir
+        end
       break if cur_dir = "/"
     end
     Repo.new(res_dir)
@@ -79,8 +81,8 @@ class Repo < Thor
     relative_file or absolute_file
   end
 
-  def fetch_just_me
-
+  def fetch_just_me(*args)
+    system_call_git('fetch', args)
   end
 
 end
