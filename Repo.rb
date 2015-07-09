@@ -2,17 +2,16 @@
 require 'rugged'
 require 'thor'
 require_relative './worker.rb'
+require 'json'
 
-class Repo < Thor
-  def initialize(initial_dir)
-    @repodir = initial_dir
-    @gitfile = File.expand_path(".git", @current_dir)
-    @gitrepo = if contains_gitfile?(@repodir)
-                 Rugged::Repository.new(@repodir)
-               else
-                 nil
-               end
-
+class Repo
+  def initialize(dir, subrepos, isHead = false)
+    @location = dir
+    @subrepos = subrepos
+    @gitfile = File.expand_path(".git", @location)
+    @gitrepo = Rugged::Repository.new(@location)
+    @repofile = File.expand_path(".repo", @location)
+    @isHead = isHead
   end
 
 #class initializers
@@ -20,16 +19,16 @@ class Repo < Thor
     unless contains_gitfile?(dir)
      Rugged::Repository.init_at(dir)
     end
-    Repo.new(dir)
+    Repo.from_dir(dir)
   end
 
   def self.lowest_above(dir)
     res_dir = dir
     loop do
-      break if contains_gitfile?(res_dir) or res_dir == "/"
+      break if is_repo_dir?(res_dir) or res_dir == "/"
       res_dir = File.dirname(res_dir)
     end
-    Repo.new(res_dir) if contains_gitfile?(res_dir)
+    Repo.from_dir(res_dir) if is_repo_dir?(res_dir)
   else
     nil
   end
@@ -39,12 +38,21 @@ class Repo < Thor
     cur_dir = dir
     loop do
       cur_dir = File.dirname(res_dir)
-      if contains_gitfile?(cur_dir)
+      if is_repo_dir?(cur_dir)
         res_dir = cur_dir
         end
       break if cur_dir = "/"
     end
-    Repo.new(res_dir)
+    Repo.from_dir(res_dir)
+  end
+
+  def self.from_repoInfo(repoInfo)
+    subRepos = repoInfo.subrepos.map(&:from_repoInfo)
+    Repo.new(repoInfo.path_to, repoInfo.subrepos, repoInfo.isHead)
+  end
+
+  def self.from_dir(dir)
+    self.from_repoInfo(RepoInfo.from_json(File.expand_path(".repo", dir)))
   end
 
   def stage_files(files)
@@ -66,6 +74,10 @@ class Repo < Thor
     system('git ' + args_string)
   end
 
+  def diff(*args)
+    result = with_captured_stdout{@gitrepo.diff}
+  end
+
 #convenience_methods?
   def exists_on_disk?
     File.exist?(@gitfile)
@@ -73,6 +85,10 @@ class Repo < Thor
 
   def self.contains_gitfile?(dir)
     File.exist?(File.expand_path(".git", dir))
+  end
+
+  def self.is_repo_dir?(dir)
+    contains_gitfile?(dir) and File.exist?(File.expand_path(".repo", dir))
   end
 
   def self.refers_to_file?(thing)
@@ -85,4 +101,43 @@ class Repo < Thor
     system_call_git('fetch', args)
   end
 
+  def with_captured_stdout
+    begin
+      old_stdout = $stdout
+      $stdout = StringIO.new('','w')
+      yield
+      $stdout.string
+    ensure
+      $stdout = old_stdout
+    end
+  end
+end
+
+class RepoInfo
+  def initialize(path_to, subrepos = [], isHead = true)
+    @path_to = path_to
+    @subrepos = subrepos
+    @isHead = isHead
+  end
+
+  def to_hash
+    subrepos_hash = subrepos.map(&:to_hash)
+    {"path_to" => @path_to,
+     "subrepos" => subrepos_hash,
+     "isHead" => isHead}
+  end
+
+  def to_json
+    to_hash.to_json
+  end
+
+  def self.from_json(string)
+    data = JSON.load(string)
+    subrepos = data["subrepos"].map(&:from_json)
+    self.new(
+        data["path_to"],
+        subrepos,
+        data["isHead"]
+    )
+  end
 end

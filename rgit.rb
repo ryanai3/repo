@@ -45,6 +45,14 @@ class Rgit < Thor
 
   end
 
+  method_option :patch, :aliases => ["-p", "-u"], :type => boolean, :default => false
+  method_option :nopatch, :aliases => "-s", :type => boolean, :default => true
+  method_option :unified, :aliases => "-U", :type =
+  desc "diff", "diffs TODO"
+  def diff
+
+  end
+
   no_commands {
     def sys_call_git(*args)
       args_string = args.map { |i| i.to_s }.join(" ")
