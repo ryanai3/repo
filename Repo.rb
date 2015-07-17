@@ -168,6 +168,14 @@ class Repo
     end
   end
 
+  def pending_commits?
+    @gitrepo.index.count > 0
+  end
+
+  def num_independent_pending_commits
+    (pending_commits? ? 1 : 0) + @subrepos.each{ |subrepo| subrepo.num_independent_pending_commits}
+  end
+
 end
 
 class RepoInfo
