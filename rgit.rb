@@ -27,7 +27,11 @@ class Rgit < Thor
 
   def add(*pathspecs)
     set_dir_info
-
+    spec = PathSpec.new()
+    spec.add(pathspecs)
+    matched_files = spec.match_tree(@current_dir)
+    headRepo = Repo.highest_above(@current_dir)
+    headRepo.stage_files(matched_files)
   end
 
   desc "git", "Calls vanilla git with your args"
