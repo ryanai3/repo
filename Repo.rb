@@ -18,7 +18,7 @@ class Repo
 #class initializers
   def self.init_at(dir)
     unless contains_gitfile?(dir)
-     Rugged::Repository.init_at(dir)
+      Rugged::Repository.init_at(dir)
     end
     Repo.from_dir(dir)
   end
@@ -29,7 +29,9 @@ class Repo
       break if is_repo_dir?(res_dir) or res_dir == "/"
       res_dir = File.dirname(res_dir)
     end
-    Repo.from_dir(res_dir) if is_repo_dir?(res_dir) else nil
+    Repo.from_dir(res_dir) if is_repo_dir?(res_dir)
+  else
+    nil
   end
 
   def self.highest_above(dir)
@@ -64,21 +66,18 @@ class Repo
     self.from_repoInfo(RepoInfo.from_json(File.expand_path(".repo", dir)))
   end
 
-  #converters
+#converters
   def to_repoinfo
     RepoInfo.new(@location, @subrepos, @is_head, @bindings)
   end
 
-
-  #save_methods
+#save_methods
   def save_to_disk
     repoInfo = to_repoinfo
     File.write(@repofile, repoInfo.to_json)
   end
 
-
-  #methods
-
+#methods
   def stage_files(files)
     files
         .group_by { |file| File.dirname(file) }
@@ -99,16 +98,16 @@ class Repo
   end
 
   def diff(*args)
-    result = with_captured_stdout{@gitrepo.diff}
+    result = with_captured_stdout { @gitrepo.diff }
   end
 
   def commit(*args)
     #TODO
   end
 
-  #container_methods
+#container_methods
   def container_add(*args)
-
+    system_call_git('add', args)
   end
 
 #convenience_methods?
@@ -137,7 +136,7 @@ class Repo
   def with_captured_stdout
     begin
       old_stdout = $stdout
-      $stdout = StringIO.new('','w')
+      $stdout = StringIO.new('', 'w')
       yield
       $stdout.string
     ensure
@@ -149,7 +148,7 @@ class Repo
     result = ''
     PTY.spawn(cmd) do |stdout, stdin, pid|
       begin
-        stdout.each{ |line| result += line}
+        stdout.each { |line| result += line }
       rescue Errno::EIO #Done getting output
         result
       end
@@ -161,7 +160,7 @@ class Repo
     begin
       PTY.spawn(cmd) do |stdout, stdin, pid|
         begin
-          stdout.each {|line| puts line}
+          stdout.each { |line| puts line }
         end
       end
     rescue PTY::ChildExited
@@ -173,6 +172,7 @@ end
 
 class RepoInfo
   attr_reader :path_to, :subrepos, :is_head, :bindings
+
   def initialize(path_to, subrepos = [], is_head = true, bindings = {})
     @path_to = path_to
     @subrepos = subrepos
@@ -181,7 +181,7 @@ class RepoInfo
   end
 
   def to_hash
-      subrepos_hash = subrepos.map(&:to_hash)
+    subrepos_hash = subrepos.map(&:to_hash)
     {"path_to" => @path_to,
      "subrepos" => subrepos_hash,
      "isHead" => isHead,
