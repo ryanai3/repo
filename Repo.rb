@@ -5,13 +5,13 @@ require_relative './worker.rb'
 require 'json'
 
 class Repo
-  def initialize(dir, subrepos, isHead = false)
+  def initialize(dir, subrepos, is_head = false)
     @location = dir
     @subrepos = subrepos
     @gitfile = File.expand_path(".git", @location)
     @gitrepo = Rugged::Repository.new(@location)
     @repofile = File.expand_path(".repo", @location)
-    @isHead = isHead
+    @is_head = is_head
   end
 
 #class initializers
@@ -28,27 +28,35 @@ class Repo
       break if is_repo_dir?(res_dir) or res_dir == "/"
       res_dir = File.dirname(res_dir)
     end
-    Repo.from_dir(res_dir) if is_repo_dir?(res_dir)
-  else
-    nil
+    Repo.from_dir(res_dir) if is_repo_dir?(res_dir) else nil
   end
 
   def self.highest_above(dir)
-    res_dir = dir
     cur_dir = dir
-    loop do
-      cur_dir = File.dirname(res_dir)
+    res_dir = dir
+    while (cur_dir != "/")
       if is_repo_dir?(cur_dir)
         res_dir = cur_dir
-        end
-      break if cur_dir = "/"
+      end
+      cur_dir = File.dirname(cur_dir)
     end
+
+    # res_dir = dir
+    # cur_dir = dir
+    # loop do
+    #   cur_dir = File.dirname(res_dir)
+    #   if is_repo_dir?(cur_dir)
+    #     res_dir = cur_dir
+    #     end
+    #   break if cur_dir == "/"
+    # end
     Repo.from_dir(res_dir)
   end
 
   def self.from_repoInfo(repoInfo)
-    subRepos = repoInfo.subrepos.map(&:from_repoInfo)
-    Repo.new(repoInfo.path_to, repoInfo.subrepos, repoInfo.isHead)
+    subs = repoInfo.subrepos
+    subRepos = subs.map(&:from_repoInfo)
+    Repo.new(repoInfo.path_to, repoInfo.subrepos, repoInfo.is_head)
   end
 
   def self.from_dir(dir)
@@ -111,17 +119,43 @@ class Repo
       $stdout = old_stdout
     end
   end
+
+  def capture_pty_stdout(cmd)
+    result = ''
+    PTY.spawn(cmd) do |stdout, stdin, pid|
+      begin
+        stdout.each{ |line| result += line}
+      rescue Errno::EIO #Done getting output
+        result
+      end
+    end
+    result
+  end
+
+  def pretty_page_command_to_user(cmd)
+    begin
+      PTY.spawn(cmd) do |stdout, stdin, pid|
+        begin
+          stdout.each {|line| puts line}
+        end
+      end
+    rescue PTY::ChildExited
+      #done, return control
+    end
+  end
+
 end
 
 class RepoInfo
-  def initialize(path_to, subrepos = [], isHead = true)
+  attr_reader :path_to, :subrepos, :is_head
+  def initialize(path_to, subrepos = [], is_head = true)
     @path_to = path_to
     @subrepos = subrepos
-    @isHead = isHead
+    @is_head = is_head
   end
 
   def to_hash
-    subrepos_hash = subrepos.map(&:to_hash)
+      subrepos_hash = subrepos.map(&:to_hash)
     {"path_to" => @path_to,
      "subrepos" => subrepos_hash,
      "isHead" => isHead}
@@ -132,7 +166,8 @@ class RepoInfo
   end
 
   def self.from_json(string)
-    data = JSON.load(string)
+    file = File.read(string)
+    data = JSON.parse(file)
     subrepos = data["subrepos"].map(&:from_json)
     self.new(
         data["path_to"],
