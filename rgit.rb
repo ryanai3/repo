@@ -3,6 +3,7 @@ require 'thor'
 require_relative './Repo.rb'
 require 'pathspec'
 require 'pty'
+require 'pathspec'
 
 #This Class functions as the CL utility for Rgit - handles
 #creating and calling Repo's in subdirectories
@@ -10,6 +11,19 @@ require 'pty'
 class Rgit < Thor
 
   desc "add", "Add file contents to the index"
+  method_option :dry_run, :aliases => "n", :type => :boolean, :default => false
+  method_option :verbose, :aliases => "v", :type => :boolean, :default => false
+  method_option :force, :aliases => "f", :type => :boolean, :default => false
+  method_option :interactive, :aliases => "i", :type => :boolean, :default => false
+  method_option :patch, :aliases => "p", :type => :boolean, :default => false
+  method_option :edit, :aliases => "e", :type => :boolean, :default => false
+  method_option :update, :aliases => "u", :type => :boolean, :default => false
+  method_option :no_ignore_removal, :aliases => "A all", :type => :boolean, :default => false
+  method_option :ignore_removal, :aliases => "no-all", :type => :boolean, :default => false
+  method_option :intent_to_add, :aliases => "N", :type => :boolean, :default => false
+  method_option :refresh, :type => :boolean, :default => false
+  method_option :ignore_errors, :type => :boolean, :default => false
+  method_option :ignore_missing, :type => :boolean, :default => false
 
   def add(*pathspecs)
     set_dir_info
@@ -34,6 +48,7 @@ class Rgit < Thor
   end
 
   desc "diff", "diffs TODO"
+
   def diff(*args)
     # Git does something very nice with diff and pathspecs, it simply doesn't do anything for
     # the pathspecs referring to git repositories inside the current one.
@@ -44,16 +59,19 @@ class Rgit < Thor
   end
 
   desc "bind", "binds a set of commits together into one commit"
+
   def bind
     #TODO
   end
 
   desc "unbind", "unbinds a set of commits"
+
   def unbind
 
   end
 
   desc "test me", "pls"
+
   def test_me
   end
 
