@@ -11,19 +11,9 @@ class Rgit < Thor
 
   desc "add", "Add file contents to the index"
 
-  def add(*args)
+  def add(*pathspecs)
     set_dir_info
-    if args.all? { |i| refers_to_file?(i) }
-      #if add is used simply, (listing files) we can handle it ourself
-      repo = Repo.highest_above(@current_dir)
-      repo.stage_files(args)
 
-    else # if args, use git (for interactive stuff too) and then repoify it
-      sys_call_git(*args)
-
-    end
-
-    print("success")
   end
 
   desc "git", "Calls vanilla git with your args"
