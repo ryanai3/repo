@@ -53,7 +53,15 @@ class Rgit < Thor
     puts repo.capture_pty_stdout('git --no-pager diff')
   end
 
+  desc "bind", "binds a set of commits together into one commit"
+  def bind
+    #TODO
+  end
 
+  desc "unbind", "unbinds a set of commits"
+  def unbind
+
+  end
 
   desc "test me", "pls"
   def test_me

@@ -5,13 +5,14 @@ require_relative './worker.rb'
 require 'json'
 
 class Repo
-  def initialize(dir, subrepos, is_head = false)
+  def initialize(dir, subrepos, is_head = false, bindings)
     @location = dir
     @subrepos = subrepos
     @gitfile = File.expand_path(".git", @location)
     @gitrepo = Rugged::Repository.new(@location)
     @repofile = File.expand_path(".repo", @location)
     @is_head = is_head
+    @bindings = bindings
   end
 
 #class initializers
@@ -56,7 +57,7 @@ class Repo
   def self.from_repoInfo(repoInfo)
     subs = repoInfo.subrepos
     subRepos = subs.map(&:from_repoInfo)
-    Repo.new(repoInfo.path_to, repoInfo.subrepos, repoInfo.is_head)
+    Repo.new(repoInfo.path_to, repoInfo.subrepos, repoInfo.is_head, repoInfo.bindings)
   end
 
   def self.from_dir(dir)
@@ -84,6 +85,10 @@ class Repo
 
   def diff(*args)
     result = with_captured_stdout{@gitrepo.diff}
+  end
+
+  def commit(*args)
+    #TODO
   end
 
 #convenience_methods?
@@ -147,18 +152,20 @@ class Repo
 end
 
 class RepoInfo
-  attr_reader :path_to, :subrepos, :is_head
-  def initialize(path_to, subrepos = [], is_head = true)
+  attr_reader :path_to, :subrepos, :is_head, :bindings
+  def initialize(path_to, subrepos = [], is_head = true, bindings = {})
     @path_to = path_to
     @subrepos = subrepos
     @is_head = is_head
+    @bindings = bindings
   end
 
   def to_hash
       subrepos_hash = subrepos.map(&:to_hash)
     {"path_to" => @path_to,
      "subrepos" => subrepos_hash,
-     "isHead" => isHead}
+     "isHead" => isHead,
+     "bindings" => bindings}
   end
 
   def to_json
@@ -172,7 +179,8 @@ class RepoInfo
     self.new(
         data["path_to"],
         subrepos,
-        data["isHead"]
+        data["isHead"],
+        data["bindings"]
     )
   end
 end
