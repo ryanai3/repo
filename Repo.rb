@@ -64,6 +64,21 @@ class Repo
     self.from_repoInfo(RepoInfo.from_json(File.expand_path(".repo", dir)))
   end
 
+  #converters
+  def to_repoinfo
+    RepoInfo.new(@location, @subrepos, @is_head, @bindings)
+  end
+
+
+  #save_methods
+  def save_to_disk
+    repoInfo = to_repoinfo
+    File.write(@repofile, repoInfo.to_json)
+  end
+
+
+  #methods
+
   def stage_files(files)
     files
         .group_by { |file| File.dirname(file) }
@@ -89,6 +104,11 @@ class Repo
 
   def commit(*args)
     #TODO
+  end
+
+  #container_methods
+  def container_add(*args)
+
   end
 
 #convenience_methods?
@@ -172,6 +192,7 @@ class RepoInfo
     to_hash.to_json
   end
 
+  #class initializers
   def self.from_json(string)
     file = File.read(string)
     data = JSON.parse(file)
