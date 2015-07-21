@@ -66,7 +66,7 @@ class Repo
     self.from_repoInfo(RepoInfo.from_json(File.expand_path(".repo", dir)))
   end
 
-#converters
+#convertersz
   def to_repoinfo
     RepoInfo.new(@location, @subrepos, @is_head, @bindings)
   end
@@ -75,6 +75,15 @@ class Repo
   def save_to_disk
     repoInfo = to_repoinfo
     File.write(@repofile, repoInfo.to_json)
+  end
+
+#api_methods
+  def add(files)
+    files_in_repo, files_in_sub_repos = files
+      .group_by { |file| File.dirname(file)}
+      .partition{ |k, v| k == @current_dir}
+    container_add(files_in_repo)
+    @subrepos.each {|subrepo| }
   end
 
 #methods
@@ -106,8 +115,11 @@ class Repo
   end
 
 #container_methods
-  def container_add(*args)
-    system_call_git('add', args)
+  def container_add(files)
+    index = @gitrepo.index
+    #index is the index we want to stage the files into!
+    files.each { |file| index << File.path(file) }
+    index.write
   end
 
 #convenience_methods?
