@@ -15,7 +15,6 @@ class Repo
     @bindings = bindings
   end
 
-
 #class initializers
 
   # Initializes/Re-initializes an Rgit repo in a directory
@@ -34,9 +33,9 @@ class Repo
     # 2. Create a .repo file and write it to disk
     #    Creating Repo object doesn't handle that
     repo_info = RepoInfo.new(
-      path_to = dir,
-      subrepos = [],
-      is_head = parent_exists
+      path_to: File.expand_path(".repo", dir),
+      subrepos: [],
+      is_head: parent_exists
     )
     repo_info.write_to_disk!
     # 3. Create Repo object from the repoInfo, return it
@@ -73,23 +72,27 @@ class Repo
   end
 
   def self.from_repo_info(repo_info)
-    subs = repo_info.subrepos
-    subRepos = subs.map(&:from_repo_info)
+    sub_repos = repo_info.subrepos.map(&:from_repo_info)
     Repo.new(
       repo_info.path_to,
-      repo_info.subrepos,
+      sub_repos,
       repo_info.is_head,
       repo_info.bindings
     )
   end
 
   def self.from_dir(dir)
-    self.from_repo_info(RepoInfo.from_json(File.expand_path(".repo", dir)))
+    from_repo_info(RepoInfo.from_json(File.expand_path(".repo", dir)))
   end
 
 #convertersz
   def to_repoinfo
-    RepoInfo.new(@location, @subrepos, @is_head, @bindings)
+    RepoInfo.new(
+        path_to: @repofile,
+        subrepos: @subrepos,
+        is_head: @is_head,
+        bindings: @bindings
+    )
   end
 
 #save_methods
@@ -216,7 +219,7 @@ end
 class RepoInfo
   attr_reader :path_to, :subrepos, :is_head, :bindings
 
-  def initialize(path_to, subrepos = [], is_head = true, bindings = {})
+  def initialize(path_to: , subrepos: [], is_head: true, bindings: {})
     @path_to = path_to
     @subrepos = subrepos
     @is_head = is_head
@@ -236,7 +239,7 @@ class RepoInfo
   end
 
   def write_to_disk!
-    File.open(@path_to){ |f| f << to_json }
+    File.open(@path_to) { |f| f << to_json }
   end
 
   #class initializers
