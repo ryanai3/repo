@@ -15,10 +15,37 @@ class Repo
     @bindings = bindings
   end
 
+
 #class initializers
-  def self.init_at(dir)
+
+  # Initializes/Re-initializes an Rgit repo in a directory
+  def self.init(dir, options = {})
+    # 1. Initialize a git repository in the directory
+    Git.init(dir, options)
+    # 2. Initialize a repo object w/ associated .repo file from that dir
+    create_from_git(dir)
+  end
+
+  # Initialize/Re-initialize a repo object w/ associated .repo from
+  # a dir containing a .git
+  def self.init_from_git(dir)
+    # 1. Find parent if it exists - !! converts truthy/falsey to a boolean
+    parent_exists = !!lowest_above(File.dirname(@location))
+    # 2. Create a .repo file and write it to disk
+    #    Creating Repo object doesn't handle that
+    repo_info = RepoInfo.new(
+      path_to = dir,
+      subrepos = [],
+      is_head = parent_exists
+    )
+    repo_info.write_to_disk!
+    # 3. Create Repo object from the repoInfo, return it
+    from_repo_info(repo_info)
+  end
+
+  def self.create_at(dir)
     unless contains_gitfile?(dir)
-      Rugged::Repository.init_at(dir)
+      Rugged::Repository.create_at(dir)
     end
     Repo.from_dir(dir)
   end
@@ -29,9 +56,7 @@ class Repo
       break if is_repo_dir?(res_dir) or res_dir == "/"
       res_dir = File.dirname(res_dir)
     end
-    Repo.from_dir(res_dir) if is_repo_dir?(res_dir)
-  else
-    nil
+    is_repo_dir?(res_dir) ? Repo.from_dir(res_dir) : nil
   end
 
   def self.highest_above(dir)
@@ -44,26 +69,22 @@ class Repo
       cur_dir = File.dirname(cur_dir)
     end
 
-    # res_dir = dir
-    # cur_dir = dir
-    # loop do
-    #   cur_dir = File.dirname(res_dir)
-    #   if is_repo_dir?(cur_dir)
-    #     res_dir = cur_dir
-    #     end
-    #   break if cur_dir == "/"
-    # end
     Repo.from_dir(res_dir)
   end
 
-  def self.from_repoInfo(repoInfo)
-    subs = repoInfo.subrepos
-    subRepos = subs.map(&:from_repoInfo)
-    Repo.new(repoInfo.path_to, repoInfo.subrepos, repoInfo.is_head, repoInfo.bindings)
+  def self.from_repo_info(repo_info)
+    subs = repo_info.subrepos
+    subRepos = subs.map(&:from_repo_info)
+    Repo.new(
+      repo_info.path_to,
+      repo_info.subrepos,
+      repo_info.is_head,
+      repo_info.bindings
+    )
   end
 
   def self.from_dir(dir)
-    self.from_repoInfo(RepoInfo.from_json(File.expand_path(".repo", dir)))
+    self.from_repo_info(RepoInfo.from_json(File.expand_path(".repo", dir)))
   end
 
 #convertersz
@@ -81,12 +102,16 @@ class Repo
   def add(files, options)
     files_in_repo, files_in_sub_repos = files
       .group_by { |file| File.dirname(file)}
-      .partition{ |k, v| k == @current_dir}
+      .partition{ |k, v| k == @location}
     container_add(files_in_repo.to_h.values, options)
     @subrepos.each {|subrepo| add(files_in_sub_repos.to_h.values, options)}
   end
 
 #methods
+  def init_git
+    system_call_git()
+  end
+
   def stage_files(files)
     files
         .group_by { |file| File.dirname(file) }
@@ -208,6 +233,10 @@ class RepoInfo
 
   def to_json
     to_hash.to_json
+  end
+
+  def write_to_disk!
+    File.open(@path_to){ |f| f << to_json }
   end
 
   #class initializers

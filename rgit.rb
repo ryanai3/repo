@@ -10,7 +10,6 @@ require 'pathspec'
 #creating and calling Repo's in subdirectories
 #and user input
 class Rgit < Thor
-
   desc "add", "Add file contents to the index"
   method_option :dry_run, :aliases => "n", :type => :boolean, :default => false
   method_option :verbose, :aliases => "v", :type => :boolean, :default => false
@@ -35,16 +34,50 @@ class Rgit < Thor
     headRepo.add(matched_files)
   end
 
+  @init_descriptions = {
+      quiet:
+          'Only print error and warning messages; all other output will be suppressed.',
+      bare:
+          'Create a bare repository. If GIT_DIR environment is not set,
+           it is set to the current working directory.',
+      separate_git_dir:
+          "Instead of initializing the repository as a directory to either $GIT_DIR or ./.git/,
+          create a text file there containing the path to the actual repository.
+          This file acts as filesystem-agnostic Git symbolic link to the repository.\n\n
+          If this is reinitialization, the repository will be moved to the specified path.",
+      shared:
+          "Specify that the Git repository is to be shared amongst several users.
+          This allows users belonging to the same group to push into that repository.
+          When specified, the config variable \"core.sharedRepository\" is set so that
+          files and directories under $GIT_DIR are created with the requested permissions.
+          When not specified, Git will use permissions reported by umask(2). \n\n",
+      template:
+          "Specify the directory from which templates will be used.
+          (See the \"TEMPLATE DIRECTORY\" section below.)"
+
+  }
+
+  desc "init", "Create an empty Rgit repository or reinitialize an existing one"
+  method_option :quiet, :aliases => "q", :type => :boolean, :default => false,
+                :desc => @init_descriptions[:quiet]
+  method_option :bare , :type => :boolean, :default => false,
+                :desc => @init_descriptions[:bare]
+  method_option :template, :type => :string,
+                :desc => @init_descriptions[:template]
+  method_option :separate_git_dir, :type => :string,
+                :desc => @init_descriptions[:separate_git_dir]
+  method_option :shared, :type => :string, :enum => ["false", "true", "umask", "group", "all", "world", "everybody"],
+                :desc => @init_descriptions[:shared]
+
+  def init
+    set_dir_info
+    Repo.init(@current_dir, options)
+  end
+
   desc "git", "Calls vanilla git with your args"
 
   def git(*args)
     sys_call_git(*args)
-  end
-
-  desc "init", "Create an empty Repository"
-
-  def init
-    Repo.init_at(dir)
   end
 
   desc "pull", "Pulls TODO"
