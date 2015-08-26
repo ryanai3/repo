@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 require 'rugged'
+require 'git'
 require 'thor'
 require_relative './worker.rb'
 require 'json'
@@ -9,7 +10,7 @@ class Repo
     @location = dir
     @subrepos = subrepos
     @gitfile = File.expand_path(".git", @location)
-    @gitrepo = Rugged::Repository.new(@location)
+    @gitrepo = Git.init(@location)
     @repofile = File.expand_path(".repo", @location)
     @is_head = is_head
     @bindings = bindings
@@ -78,12 +79,12 @@ class Repo
   end
 
 #api_methods
-  def add(files)
+  def add(files, options)
     files_in_repo, files_in_sub_repos = files
       .group_by { |file| File.dirname(file)}
       .partition{ |k, v| k == @current_dir}
-    container_add(files_in_repo)
-    @subrepos.each {|subrepo| }
+    container_add(files_in_repo.to_h.values, options)
+    @subrepos.each {|subrepo| add(files_in_sub_repos.to_h.values, options)}
   end
 
 #methods
@@ -115,11 +116,9 @@ class Repo
   end
 
 #container_methods
-  def container_add(files)
-    index = @gitrepo.index
+  def container_add(files, options)
     #index is the index we want to stage the files into!
-    files.each { |file| index << File.path(file) }
-    index.write
+    @gitrepo.add(files, options)
   end
 
 #convenience_methods?
