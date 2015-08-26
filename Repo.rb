@@ -22,14 +22,14 @@ class Repo
     # 1. Initialize a git repository in the directory
     Git.init(dir, options)
     # 2. Initialize a repo object w/ associated .repo file from that dir
-    create_from_git(dir)
+    init_from_git(dir)
   end
 
   # Initialize/Re-initialize a repo object w/ associated .repo from
   # a dir containing a .git
   def self.init_from_git(dir)
     # 1. Find parent if it exists - !! converts truthy/falsey to a boolean
-    parent_exists = !!lowest_above(File.dirname(@location))
+    parent_exists = !!lowest_above(File.dirname(dir))
     # 2. Create a .repo file and write it to disk
     #    Creating Repo object doesn't handle that
     repo_info = RepoInfo.new(
@@ -52,6 +52,7 @@ class Repo
   def self.lowest_above(dir)
     res_dir = dir
     loop do
+      # puts(res_dir)
       break if is_repo_dir?(res_dir) or res_dir == "/"
       res_dir = File.dirname(res_dir)
     end

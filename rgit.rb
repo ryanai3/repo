@@ -84,9 +84,12 @@ class Rgit < Thor
       desc: @init_descriptions[:shared]
     }
 
-  def init
+  def init(*arg)
     set_dir_info
-    Repo.init(@current_dir, options)
+    # If no dir is specified, use current dir, otherwise absolute path of specified dir
+    directory = arg.empty? ? @current_dir : File.absolute_path(arg[0])
+    # thor hands us a frozen hash, ruby-git messes with it, so we hand it a shallow copy of the hash
+    Repo.init(directory, options.dup)
   end
 
   desc "git", "Calls vanilla git with your args"
