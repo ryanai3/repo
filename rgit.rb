@@ -90,6 +90,7 @@ class Rgit < Thor
     directory = arg.empty? ? @current_dir : File.absolute_path(arg[0])
     # thor hands us a frozen hash, ruby-git messes with it, so we hand it a shallow copy of the hash
     Repo.init(directory, options.dup)
+    puts("Initialized empty rGit repository in #{directory}") unless options[:quiet]
   end
 
   desc "git", "Calls vanilla git with your args"

@@ -9,19 +9,20 @@ class Repo
     @location = dir
     @subrepos = subrepos
     @gitfile = File.expand_path(".git", @location)
-    @gitrepo = Git.init(@location)
+    @gitrepo = Git.open(@location)
     @repofile = File.expand_path(".repo", @location)
     @is_head = is_head
     @bindings = bindings
   end
 
-#class initializers
+  #class initializers
 
   # Initializes/Re-initializes an Rgit repo in a directory
   def self.init(dir, options = {})
     # 1. Initialize a git repository in the directory
     Git.init(dir, options)
     # 2. Initialize a repo object w/ associated .repo file from that dir
+    # init_from_git(dir)
     init_from_git(dir)
   end
 
@@ -38,8 +39,6 @@ class Repo
       is_head: parent_exists
     )
     repo_info.write_to_disk!
-    # 3. Create Repo object from the repoInfo, return it
-    from_repo_info(repo_info)
   end
 
   def self.create_at(dir)
@@ -75,7 +74,7 @@ class Repo
   def self.from_repo_info(repo_info)
     sub_repos = repo_info.subrepos.map(&:from_repo_info)
     Repo.new(
-      repo_info.path_to,
+      File.dirname(repo_info.path_to),
       sub_repos,
       repo_info.is_head,
       repo_info.bindings
@@ -228,11 +227,11 @@ class RepoInfo
   end
 
   def to_hash
-    subrepos_hash = subrepos.map(&:to_hash)
+    subrepos_hash = @subrepos.map(&:to_hash)
     {"path_to" => @path_to,
      "subrepos" => subrepos_hash,
-     "isHead" => isHead,
-     "bindings" => bindings}
+     "isHead" => @isHead,
+     "bindings" => @bindings}
   end
 
   def to_json
@@ -240,7 +239,7 @@ class RepoInfo
   end
 
   def write_to_disk!
-    File.open(@path_to) { |f| f << to_json }
+    File.open(@path_to, "w") { |f| f << to_json }
   end
 
   #class initializers
