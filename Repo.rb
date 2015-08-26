@@ -2,7 +2,6 @@
 require 'rugged'
 require 'git'
 require 'thor'
-require_relative './worker.rb'
 require 'json'
 
 class Repo
