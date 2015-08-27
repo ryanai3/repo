@@ -5,14 +5,13 @@ require 'thor'
 require 'json'
 
 class Repo
-  def initialize(dir, subrepos, is_head = false, bindings)
+  def initialize(dir, subrepos, is_head = false)
     @location = dir
     @subrepos = subrepos
     @gitfile = File.expand_path(".git", @location)
     @gitrepo = Git.open(@location)
     @repofile = File.expand_path(".repo", @location)
     @is_head = is_head
-    @bindings = bindings
   end
 
   #class initializers
@@ -77,7 +76,6 @@ class Repo
       File.dirname(repo_info.path_to),
       sub_repos,
       repo_info.is_head,
-      repo_info.bindings
     )
   end
 
@@ -91,7 +89,6 @@ class Repo
         path_to: @repofile,
         subrepos: @subrepos,
         is_head: @is_head,
-        bindings: @bindings
     )
   end
 
@@ -217,21 +214,25 @@ class Repo
 end
 
 class RepoInfo
-  attr_reader :path_to, :subrepos, :is_head, :bindings
+  # path_to: String = Absolute Path to .repo file
+  # subrepos: [RepoInfo] = Array of subrepos
+  # is_head: Bool = Whether or not this is a head repo (no parents)
+  attr_reader :path_to, :subrepos, :is_head
 
-  def initialize(path_to: , subrepos: [], is_head: true, bindings: {})
+  def initialize(path_to:, subrepos: [], is_head: true)
     @path_to = path_to
     @subrepos = subrepos
     @is_head = is_head
-    @bindings = bindings
   end
 
+  # Convert to hash, encoding subrepos as path to their repofile
+  # Used for serialization to disk - so that a .repo doesn't
+  # hold information about its repo's grandchildren
   def to_hash
-    subrepos_hash = @subrepos.map(&:to_hash)
-    {"path_to" => @path_to,
-     "subrepos" => subrepos_hash,
-     "isHead" => @isHead,
-     "bindings" => @bindings}
+    { "path_to" => @path_to,
+      "subrepos" => @subrepos.each(&:path_to),
+      "isHead" => @is_head,
+    }
   end
 
   def to_json
@@ -242,16 +243,22 @@ class RepoInfo
     File.open(@path_to, "w") { |f| f << to_json }
   end
 
+  def recursive_write_to_disk!
+    write_to_disk!
+    subrepos.each(&:recursive_write_to_disk!)
+  end
+
   #class initializers
-  def self.from_json(string)
-    file = File.read(string)
-    data = JSON.parse(file)
-    subrepos = data["subrepos"].map(&:from_json)
+  def self.from_json(path)
+    file = File.read(path)
+    hash = JSON.parse(file)
+
+    subrepos = hash["subrepos"].each { |path_to_sub| from_json(path_to_sub) }
     self.new(
-        data["path_to"],
-        subrepos,
-        data["isHead"],
-        data["bindings"]
+      hash["path_to"],
+      subrepos,
+      hash["is_head"],
     )
   end
+
 end
