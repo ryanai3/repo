@@ -21,7 +21,6 @@ class Repo
     # 1. Initialize a git repository in the directory
     Git.init(dir, options)
     # 2. Initialize a repo object w/ associated .repo file from that dir
-    # init_from_git(dir)
     init_from_git(dir)
   end
 
