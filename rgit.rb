@@ -11,30 +11,25 @@ require 'pathname'
 #and user input
 class Rgit < Thor
   no_commands { 
-    
     def format_options(option_hash)
-      puts("formatting!")
       result = ""
       option_hash.each { |k, v|
-        puts ("key!: #{k}, val!: #{v}")
-        puts ("!!: #{!!v}")
         key_str = " --#{k.to_s.gsub("_","-")}"
         case v # v is truthy in all cases except: nil, false
-          when [true, false].include?(v) # it's a boolean
-            result << key_str
-          when String
-            result << key_str << "=#{v}"
-          when Fixnum
-            result << key_str << "=#{v}"
-          when Hash
-            v.each { |key, val|
-              result << key_str << " #{key}=#{val}"
-            }
+        when [true, false].include?(v) # it's a boolean
+          result << key_str
+        when String
+          result << key_str << "=#{v}"
+        when Fixnum
+          result << key_str << "=#{v}"
+        when Hash
+          v.each { |key, val|
+            result << key_str << " #{key}=#{val}"
+          }
         end 
       }
       result  
     end  
-  
   }
 
   desc "add", "Add file contents to the index"
@@ -160,8 +155,8 @@ class Rgit < Thor
 
   @clone_descriptions = {
     local:
-      'When the repository to clone from is on a local machine, this flag
-       bypasses the normal "Git aware" transport mechanism and clones the
+      "When the repository to clone from is on a local machine, this flag
+       bypasses the normal \"Git aware\" transport mechanism and clones the
        repository by making a copy of HEAD and everything under objects and
        refs directories. The files under .git/objects/ directory are hardlinked
        to save space when possible.
@@ -170,9 +165,9 @@ class Rgit < Thor
        this is the default, and --local is essentially a no-op. If the repository
        is specified as a URL, then this flag is ignored (and we never use the local
        optimizations). Specifying --no-local will override the default when
-       /path/to/repo is given, using the regular Git transport instead.',
+       /path/to/repo is given, using the regular Git transport instead.",
     bare:
-      ''
+      ""
 
 
 
