@@ -10,6 +10,33 @@ require 'pathspec'
 #creating and calling Repo's in subdirectories
 #and user input
 class Rgit < Thor
+  no_commands { 
+    
+    def format_options(option_hash)
+      puts("formatting!")
+      result = ""
+      option_hash.each { |k, v|
+        puts ("key!: #{k}, val!: #{v}")
+        puts ("!!: #{!!v}")
+        key_str = " --#{k.to_s.gsub("_","-")}"
+        case v # v is truthy in all cases except: nil, false
+          when [true, false].include?(v) # it's a boolean
+            result << key_str
+          when String
+            result << key_str << "=#{v}"
+          when Fixnum
+            result << key_str << "=#{v}"
+          when Hash
+            v.each { |key, val|
+              result << key_str << " #{key}=#{val}"
+            }
+        end 
+      }
+      result  
+    end  
+  
+  }
+
   desc "add", "Add file contents to the index"
   method_option :dry_run, aliases: "n", type: :boolean, default: false
   method_option :verbose, aliases: "v", type: :boolean, default: false
@@ -33,6 +60,8 @@ class Rgit < Thor
     headRepo = Repo.highest_above(@current_dir)
     headRepo.add(matched_files)
   end
+
+  
 
   @init_descriptions = {
     long_desc:
@@ -152,100 +181,90 @@ class Rgit < Thor
   desc "clone", "Clone a repository into a new directory"
   long_desc @clone_descriptions[:long_desc]
 
-  method_options :local,
+  method_option :local,
     { aliases: "l",
       type: :boolean,
-      default: false,
       desc: @clone_descriptions[:local],
     }
-  method_options :no_hardlinks,
-    { type: :boolean,
-      default: false,
+  method_option :no_hardlinks,
+    { type: :boolean, 
       desc: @clone_descriptions[:no_hardlinks],
     }
-  method_options :shared,
+  method_option :shared,
     { type: :boolean,
-      default: false,
       desc: @clone_descriptions[:shared],
     }
-  method_options :reference,
+  method_option :reference,
     { type: :string,
       desc: @clone_descriptions[:reference],
     }
-  method_options :dissociate,
+  method_option :dissociate,
     { type: :boolean,
-      default: false,
       desc: @clone_descriptions[:dissociate],
     }
-  method_options :quiet,
+  method_option :quiet,
     { aliases: "q",
       type: :boolean,
-      default: false,
       desc: @clone_descriptions[:quiet],
     }
-  method_options :verbose,
+  method_option :verbose,
     { aliases: "v",
       type: :boolean,
-      default: false,
       desc: @clone_descriptions[:verbose],
     }
-  method_options :progress,
+  method_option :progress,
     { type: :boolean,
-      default: false,
       desc: @clone_descriptions[:progress],
     }
-  method_options :no_checkout,
+  method_option :no_checkout,
     { aliases: "n",
       type: :boolean,
-      default: false,
       desc: @clone_descriptions[:no_checkout],
     }
-  method_options :bare,
+  method_option :bare,
     { type: :boolean,
-      default: false,
       desc: @clone_descriptions[:bare],
     }
-  method_options :mirror,
+  method_option :mirror,
     { type: :boolean,
-      default: :false,
       desc: @clone_descriptions[:mirror],
     }
-  method_options :branch,
+  method_option :branch,
     { aliases: "b",
       type: :string,
       desc: @clone_descriptions[:branch],
     }
-  method_options :upload_pack,
+  method_option :upload_pack,
     { aliases: "u",
       type: :boolean,
-      default: false,
       desc: @clone_descriptions[:upload_pack],
     }
-  method_options :template,
+  method_option :template,
     { type: :string,
       desc: @clone_descriptions[:template],
     }
-  method_options :config,
+  method_option :config,
     { aliases: "c",
       type: :hash,
       desc: @clone_descriptions[:config],
     }
-  method_options :depth,
+  method_option :depth,
     { type: :numeric,
       desc: @clone_descriptions[:depth],
     }
-  method_options :single_branch,
+  method_option :single_branch,
     { type: :boolean,
-      default: false,
       desc: @clone_descriptions[:single_branch],
     }
-  method_options :separate_git_dir,
+  method_option :separate_git_dir,
     { type: :string,
       desc: @clone_descriptions[:separate_git_dir],
     }
   
   def clone(repository, *directory)
-    
+    directory = directory.empty? ? @current_dir : File.absolute_path(directory[0]) 
+    git_str = format_options(options)
+    Repo.clone(repository, directory, git_str)
   end
 
   desc "git", "Calls vanilla git with your args"

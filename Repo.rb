@@ -5,8 +5,10 @@ require 'thor'
 require 'json'
 
 class Repo
+  attr_accessor :location, :url, :subrepos, :is_head
   def initialize(dir, subrepos, is_head = false)
     @location = dir
+    @url = "www.google.com" #TODO: GET URL FROM GIT
     @subrepos = subrepos
     @gitfile = File.expand_path(".git", @location)
     @gitrepo = Git.open(@location)
@@ -33,12 +35,27 @@ class Repo
     #    Creating Repo object doesn't handle that
     repo_info = RepoInfo.new(
       path_to: File.expand_path(".repo", dir),
+      url: "www.google.com", #TODO: GET URL FROM GIT
       subrepos: [],
       is_head: parent_exists
     )
     repo_info.write_to_disk!
   end
-
+  # Clone a rgit repository and it's subrepos recursively into the passed
+  # directory, with the passed options as a string to git
+  # Return an object representing the Rgit repository
+  def self.clone(repository, directory, git_str) 
+    system("git clone #{git_str}")
+    result = from_dir(directory)
+    result.subrepos = result.subrepos.map { |sub|
+      clone(
+        sub.url,
+        directory + sub.path_to,
+        git_str,
+      )
+    }
+  end
+ 
   def self.create_at(dir)
     unless contains_gitfile?(dir)
       Rugged::Repository.create_at(dir)
@@ -86,6 +103,7 @@ class Repo
   def to_repoinfo
     RepoInfo.new(
         path_to: @repofile,
+        url: @url,
         subrepos: @subrepos,
         is_head: @is_head,
     )
@@ -127,7 +145,7 @@ class Repo
 
   def system_call_git(*args)
     args_string = args.map { |i| i.to_s }.join(" ")
-    system('git ' + args_string)
+    system("git #{args_string}")
   end
 
   def diff(*args)
@@ -213,13 +231,14 @@ class Repo
 end
 
 class RepoInfo
-  # path_to: String = Absolute Path to .repo file
+  # path_to: String = relative path to .repo file from parent repo
   # subrepos: [RepoInfo] = Array of subrepos
   # is_head: Bool = Whether or not this is a head repo (no parents)
-  attr_reader :path_to, :subrepos, :is_head
+  attr_reader :path_to, :url, :subrepos, :is_head
 
-  def initialize(path_to:, subrepos: [], is_head: true)
+  def initialize(path_to:, url:, subrepos: [], is_head: true)
     @path_to = path_to
+    @url = url
     @subrepos = subrepos
     @is_head = is_head
   end
@@ -229,6 +248,7 @@ class RepoInfo
   # hold information about its repo's grandchildren
   def to_hash
     { "path_to" => @path_to,
+      "url" => @url,
       "subrepos" => @subrepos.each(&:path_to),
       "isHead" => @is_head,
     }
@@ -254,9 +274,10 @@ class RepoInfo
 
     subrepos = hash["subrepos"].each { |path_to_sub| from_json(path_to_sub) }
     self.new(
-      hash["path_to"],
-      subrepos,
-      hash["is_head"],
+      path_to: hash["path_to"],
+      url: hash["url"]
+      subrepos: subrepos,
+      is_head: hash["is_head"],
     )
   end
 
