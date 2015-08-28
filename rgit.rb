@@ -127,6 +127,126 @@ class Rgit < Thor
     Repo.init(directory, options.dup)
     puts("Initialized empty rGit repository in #{directory}") unless options[:quiet]
   end
+ 
+
+  @clone_descriptions = {
+    local:
+      'When the repository to clone from is on a local machine, this flag
+       bypasses the normal "Git aware" transport mechanism and clones the
+       repository by making a copy of HEAD and everything under objects and
+       refs directories. The files under .git/objects/ directory are hardlinked
+       to save space when possible.
+
+       If the repository is specified as a local path (e.g., /path/to/repo),
+       this is the default, and --local is essentially a no-op. If the repository
+       is specified as a URL, then this flag is ignored (and we never use the local
+       optimizations). Specifying --no-local will override the default when
+       /path/to/repo is given, using the regular Git transport instead.',
+    bare:
+      ''
+
+
+
+  }
+
+  desc "clone", "Clone a repository into a new directory"
+  long_desc @clone_descriptions[:long_desc]
+
+  method_options :local,
+    { aliases: "l",
+      type: :boolean,
+      default: false,
+      desc: @clone_descriptions[:local],
+    }
+  method_options :no_hardlinks,
+    { type: :boolean,
+      default: false,
+      desc: @clone_descriptions[:no_hardlinks],
+    }
+  method_options :shared,
+    { type: :boolean,
+      default: false,
+      desc: @clone_descriptions[:shared],
+    }
+  method_options :reference,
+    { type: :string,
+      desc: @clone_descriptions[:reference],
+    }
+  method_options :dissociate,
+    { type: :boolean,
+      default: false,
+      desc: @clone_descriptions[:dissociate],
+    }
+  method_options :quiet,
+    { aliases: "q",
+      type: :boolean,
+      default: false,
+      desc: @clone_descriptions[:quiet],
+    }
+  method_options :verbose,
+    { aliases: "v",
+      type: :boolean,
+      default: false,
+      desc: @clone_descriptions[:verbose],
+    }
+  method_options :progress,
+    { type: :boolean,
+      default: false,
+      desc: @clone_descriptions[:progress],
+    }
+  method_options :no_checkout,
+    { aliases: "n",
+      type: :boolean,
+      default: false,
+      desc: @clone_descriptions[:no_checkout],
+    }
+  method_options :bare,
+    { type: :boolean,
+      default: false,
+      desc: @clone_descriptions[:bare],
+    }
+  method_options :mirror,
+    { type: :boolean,
+      default: :false,
+      desc: @clone_descriptions[:mirror],
+    }
+  method_options :branch,
+    { aliases: "b",
+      type: :string,
+      desc: @clone_descriptions[:branch],
+    }
+  method_options :upload_pack,
+    { aliases: "u",
+      type: :boolean,
+      default: false,
+      desc: @clone_descriptions[:upload_pack],
+    }
+  method_options :template,
+    { type: :string,
+      desc: @clone_descriptions[:template],
+    }
+  method_options :config,
+    { aliases: "c",
+      type: :hash,
+      desc: @clone_descriptions[:config],
+    }
+  method_options :depth,
+    { type: :numeric,
+      desc: @clone_descriptions[:depth],
+    }
+  method_options :single_branch,
+    { type: :boolean,
+      default: false,
+      desc: @clone_descriptions[:single_branch],
+    }
+  method_options :separate_git_dir,
+    { type: :string,
+      desc: @clone_descriptions[:separate_git_dir],
+    }
+  
+  def clone(repository, *directory)
+    
+  end
 
   desc "git", "Calls vanilla git with your args"
 
