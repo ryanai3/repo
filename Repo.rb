@@ -3,6 +3,7 @@ require 'rugged'
 require 'git'
 require 'thor'
 require 'json'
+require 'pathname'
 
 class Repo
   attr_accessor :location, :url, :subrepos, :is_head
@@ -10,9 +11,9 @@ class Repo
     @location = dir
     @url = "www.google.com" #TODO: GET URL FROM GIT
     @subrepos = subrepos
-    @gitfile = File.expand_path(".git", @location)
+    @gitfile = @location + ".git"
     @gitrepo = Git.open(@location)
-    @repofile = File.expand_path(".repo", @location)
+    @repofile = @location + ".repo" 
     @is_head = is_head
   end
 
@@ -30,11 +31,11 @@ class Repo
   # a dir containing a .git
   def self.init_from_git(dir)
     # 1. Find parent if it exists - !! converts truthy/falsey to a boolean
-    parent_exists = !!lowest_above(File.dirname(dir))
+    parent_exists = !!lowest_above(.dirname(dir))
     # 2. Create a .repo file and write it to disk
     #    Creating Repo object doesn't handle that
     repo_info = RepoInfo.new(
-      path_to: File.expand_path(".repo", dir),
+      path_to: dir + ".repo",
       url: "www.google.com", #TODO: GET URL FROM GIT
       subrepos: [],
       is_head: parent_exists
@@ -64,39 +65,34 @@ class Repo
   end
 
   def self.lowest_above(dir)
-    res_dir = dir
-    loop do
-      # puts(res_dir)
-      break if is_repo_dir?(res_dir) or res_dir == "/"
-      res_dir = File.dirname(res_dir)
-    end
-    is_repo_dir?(res_dir) ? Repo.from_dir(res_dir) : nil
+    res_dir = nil
+    dir.ascend { |f|
+      res_dir = f and break if is_repo_dir?(f)  
+    }   
+    res_dir 
   end
 
   def self.highest_above(dir)
-    cur_dir = dir
-    res_dir = dir
-    while (cur_dir != "/")
-      if is_repo_dir?(cur_dir)
-        res_dir = cur_dir
+    res_dir = nil
+    dir.ascend { |f|
+      if is_repo_dir?(f)
+        res_dir = f
       end
-      cur_dir = File.dirname(cur_dir)
-    end
-
+    }  
     Repo.from_dir(res_dir)
   end
 
   def self.from_repo_info(repo_info)
     sub_repos = repo_info.subrepos.map(&:from_repo_info)
     Repo.new(
-      File.dirname(repo_info.path_to),
+      repo_info.path_to.dirname,
       sub_repos,
       repo_info.is_head,
     )
   end
 
   def self.from_dir(dir)
-    from_repo_info(RepoInfo.from_json(File.expand_path(".repo", dir)))
+    from_repo_info(RepoInfo.from_json(dir + ".repo"))
   end
 
 #convertersz
@@ -168,17 +164,11 @@ class Repo
   end
 
   def self.contains_gitfile?(dir)
-    File.exist?(File.expand_path(".git", dir))
+    (dir + ".git").exists?
   end
 
   def self.is_repo_dir?(dir)
-    contains_gitfile?(dir) and File.exist?(File.expand_path(".repo", dir))
-  end
-
-  def self.refers_to_file?(thing)
-    relative_file = File.exist?(File.expand_path(thing, @current_dir))
-    absolute_file = File.exist?(File.absolute_path(thing))
-    relative_file or absolute_file
+    contains_gitfile?(dir) and (dir + ".repo").exist? 
   end
 
   def fetch_just_me(*args)

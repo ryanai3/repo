@@ -4,7 +4,7 @@ require 'thor'
 require_relative './Repo.rb'
 require 'pathspec'
 require 'pty'
-require 'pathspec'
+require 'pathname'
 
 #This Class functions as the CL utility for Rgit - handles
 #creating and calling Repo's in subdirectories
@@ -151,7 +151,7 @@ class Rgit < Thor
   def init(*arg)
     set_dir_info
     # If no dir is specified, use current dir, otherwise absolute path of specified dir
-    directory = arg.empty? ? @current_dir : File.absolute_path(arg[0])
+    directory = arg.empty? ? @current_dir : Pathname.new(arg[0]).realpath
     # thor hands us a frozen hash, ruby-git messes with it, so we hand it a shallow copy of the hash
     Repo.init(directory, options.dup)
     puts("Initialized empty rGit repository in #{directory}") unless options[:quiet]
@@ -262,7 +262,7 @@ class Rgit < Thor
     }
   
   def clone(repository, *directory)
-    directory = directory.empty? ? @current_dir : File.absolute_path(directory[0]) 
+    directory = directory.empty? ? @current_dir : Pathname.new(directory[0]).realpath 
     git_str = format_options(options)
     Repo.clone(repository, directory, git_str)
   end
@@ -314,7 +314,7 @@ class Rgit < Thor
     end
 
     def set_dir_info
-      @current_dir = Dir.pwd
+      @current_dir = Pathname.pwd
     end
   }
 end
