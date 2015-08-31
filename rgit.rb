@@ -280,8 +280,7 @@ class Rgit < Thor
     # the pathspecs referring to git repositories inside the current one.
     set_dir_info
     repo = Repo.highest_above(@current_dir)
-    # repo.diff(*args)
-    puts repo.capture_pty_stdout('git --no-pager diff')
+    repo.diff(*args)    
   end
 
   desc "bind", "binds a set of commits together into one commit"

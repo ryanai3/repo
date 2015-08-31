@@ -31,7 +31,7 @@ class Repo
   # a dir containing a .git
   def self.init_from_git(dir)
     # 1. Find parent if it exists - !! converts truthy/falsey to a boolean
-    parent_exists = !!lowest_above(.dirname(dir))
+    parent_exists = !!lowest_above(dir)
     # 2. Create a .repo file and write it to disk
     #    Creating Repo object doesn't handle that
     repo_info = RepoInfo.new(
@@ -67,7 +67,10 @@ class Repo
   def self.lowest_above(dir)
     res_dir = nil
     dir.ascend { |f|
-      res_dir = f and break if is_repo_dir?(f)  
+      if is_repo_dir?(f)
+        res_dir = f
+        break
+      end
     }   
     res_dir 
   end
@@ -144,8 +147,10 @@ class Repo
     system("git #{args_string}")
   end
 
-  def diff(*args)
-    result = with_captured_stdout { @gitrepo.diff }
+  def diff(git_str)
+    diff_str = capture_pty_stdout("git #{git_str}")
+    @subrepos.each { |sub| diff_str << sub.diff(git_str)}
+    diff_str
   end
 
   def commit(*args)
@@ -168,7 +173,7 @@ class Repo
   end
 
   def self.is_repo_dir?(dir)
-    contains_gitfile?(dir) and (dir + ".repo").exist? 
+    contains_gitfile?(dir) && (dir + ".repo").exist?
   end
 
   def fetch_just_me(*args)
