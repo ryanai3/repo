@@ -186,9 +186,9 @@ class Repo
     end
   end
 
-  def capture_pty_stdout(cmd)
+  def capture_pty_stdout(cmd, dir = @location)
     result = ''
-    PTY.spawn(cmd) do |stdout, stdin, pid|
+    PTY.spawn("cd #{dir.realpath}; #{cmd}") do |stdout, stdin, pid|
       begin
         stdout.each { |line| result += line }
       rescue Errno::EIO #Done getting output
@@ -198,9 +198,9 @@ class Repo
     result
   end
 
-  def pretty_page_command_to_user(cmd)
+  def pretty_page_command_to_user(cmd, dir = @location)
     begin
-      PTY.spawn(cmd) do |stdout, stdin, pid|
+      PTY.spawn("cd #{dir.realpath}; #{cmd}") do |stdout, stdin, pid|
         begin
           stdout.each { |line| puts line }
         end
