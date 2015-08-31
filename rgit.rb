@@ -56,7 +56,13 @@ class Rgit < Thor
     headRepo.add(matched_files)
   end
 
-  
+  desc "branch", "List, create, or delete branches"
+  def branch(branch_name = "")
+    set_dir_info
+    git_str = format_options(options) + branch_name
+    repo = Repo.highest_above(@current_dir)
+    puts(repo.branch(git_str))
+  end
 
   @init_descriptions = {
     long_desc:
@@ -143,10 +149,10 @@ class Rgit < Thor
       desc: @init_descriptions[:shared]
     }
 
-  def init(*arg)
+  def init(directory = @current_dir)
     set_dir_info
     # If no dir is specified, use current dir, otherwise absolute path of specified dir
-    directory = arg.empty? ? @current_dir : Pathname.new(arg[0]).realpath
+    directory = Pathname.new(directory).realpath
     # thor hands us a frozen hash, ruby-git messes with it, so we hand it a shallow copy of the hash
     Repo.init(directory, options.dup)
     puts("Initialized empty rGit repository in #{directory}") unless options[:quiet]
@@ -256,10 +262,10 @@ class Rgit < Thor
       desc: @clone_descriptions[:separate_git_dir],
     }
   
-  def clone(repository, *directory)
-    directory = directory.empty? ? @current_dir : Pathname.new(directory[0]).realpath 
-    git_str = format_options(options)
-    Repo.clone(repository, directory, git_str)
+  def clone(repository, directory = @current_dir)
+    directory = Pathname.new(directory).realpath
+    opt_str = format_options(options)
+    Repo.clone(repository, directory, opt_str)
   end
 
   desc "git", "Calls vanilla git with your args"
@@ -297,7 +303,7 @@ class Rgit < Thor
 
   desc "test me", "pls"
 
-  def test_me
+  def test_me(notRequired="")
   end
 
 

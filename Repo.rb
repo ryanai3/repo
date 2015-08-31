@@ -12,7 +12,7 @@ class Repo
     @url = "www.google.com" #TODO: GET URL FROM GIT
     @subrepos = subrepos
     @gitfile = @location + ".git"
-    @gitrepo = Git.open(@location)
+    @gitrepo = Rugged::Repository.new(@location.realpath)
     @repofile = @location + ".repo" 
     @is_head = is_head
   end
@@ -20,9 +20,9 @@ class Repo
   #class initializers
 
   # Initializes/Re-initializes an Rgit repo in a directory
-  def self.init(dir, options = {})
+  def self.init(dir, opt_str)
     # 1. Initialize a git repository in the directory
-    Git.init(dir, options)
+    output = git_command('init', opt_str, dir)
     # 2. Initialize a repo object w/ associated .repo file from that dir
     init_from_git(dir)
   end
@@ -42,17 +42,18 @@ class Repo
     )
     repo_info.write_to_disk!
   end
+
   # Clone a rgit repository and it's subrepos recursively into the passed
   # directory, with the passed options as a string to git
   # Return an object representing the Rgit repository
-  def self.clone(repository, directory, git_str) 
-    system("git clone #{git_str}")
+  def self.clone(repository, directory, opt_str)
+    git_command('clone', "#{opt_str} #{repository}", directory)
     result = from_dir(directory)
     result.subrepos = result.subrepos.map { |sub|
       clone(
         sub.url,
         directory + sub.path_to,
-        git_str,
+        opt_str,
       )
     }
   end
@@ -124,10 +125,6 @@ class Repo
   end
 
 #methods
-  def init_git
-    system_call_git()
-  end
-
   def stage_files(files)
     files
         .group_by { |file| File.dirname(file) }
@@ -147,9 +144,17 @@ class Repo
     system("git #{args_string}")
   end
 
+  def branch(git_str)
+    output = git_command_here('branch', git_str)
+    @subrepos.each { |sub|
+      output << sub.branch(git_str)
+    }
+    output
+  end
+
   def diff(git_str)
-    diff_str = capture_pty_stdout("git #{git_str}")
-    @subrepos.each { |sub| diff_str << sub.diff(git_str)}
+    diff_str = capture_pty_stdout("git #{git_str}", @location)
+    @subrepos.each { |sub| diff_str << sub.diff(git_str) }
     diff_str
   end
 
@@ -191,7 +196,15 @@ class Repo
     end
   end
 
-  def capture_pty_stdout(cmd, dir = @location)
+  def git_command_here(cmd, opt_str)
+    self.class.git_command(cmd, opt_str, @location)
+  end
+
+  def self.git_command(cmd, opt_str, dir)
+    capture_pty_stdout("#{cmd} #{opt_str}", dir)
+  end
+
+  def self.capture_pty_stdout(cmd, dir)
     result = ''
     PTY.spawn("cd #{dir.realpath}; #{cmd}") do |stdout, stdin, pid|
       begin
@@ -203,7 +216,7 @@ class Repo
     result
   end
 
-  def pretty_page_command_to_user(cmd, dir = @location)
+  def self.pretty_page_command_to_user(cmd, dir)
     begin
       PTY.spawn("cd #{dir.realpath}; #{cmd}") do |stdout, stdin, pid|
         begin
@@ -270,7 +283,7 @@ class RepoInfo
     subrepos = hash["subrepos"].each { |path_to_sub| from_json(path_to_sub) }
     self.new(
       path_to: hash["path_to"],
-      url: hash["url"]
+      url: hash["url"],
       subrepos: subrepos,
       is_head: hash["is_head"],
     )
